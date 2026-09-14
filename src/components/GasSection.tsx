@@ -24,7 +24,7 @@ export function GasSection({ points, surcharge }: { points: PricePoint[]; surcha
   const max = chartData.length ? Math.max(...chartData.map((d) => d.price)) : 0;
 
   return (
-    <Card title="Gasprijs (EEX day-ahead)" subtitle="Gas wordt per dag geprijsd, niet per uur">
+    <Card title="Gasprijs (day-ahead)" subtitle="Gas wordt per dag geprijsd, niet per uur">
       {today ? (
         <div className="mb-4 flex items-baseline gap-2">
           <span className="text-3xl font-bold tabular-nums">{formatEurCents(totalPrice(today, surcharge))}</span>

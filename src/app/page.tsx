@@ -47,7 +47,7 @@ export default function Home() {
 
       <footer className="mt-4 border-t border-black/10 pt-4 text-xs text-black/40 dark:border-white/10 dark:text-white/40">
         <p>
-          Bron: publieke day-ahead tarieven van easyEnergy (EPEX Day Ahead voor stroom, EEX/LEBA voor gas). Getoonde prijzen zijn de kale groothandelsmarktprijs, optioneel verhoogd met de door jou ingevulde opslag en BTW. Dit is
+          Bron: publieke day-ahead tarieven van EnergyZero (EPEX Day Ahead voor stroom en gas). Getoonde prijzen zijn de kale groothandelsmarktprijs, optioneel verhoogd met de door jou ingevulde opslag en BTW. Dit is
           geen tarief van of advies namens Vattenfall of enige andere leverancier — controleer altijd je eigen contract en jaarafrekening voor de exacte tarieven die voor jou gelden.
         </p>
       </footer>
