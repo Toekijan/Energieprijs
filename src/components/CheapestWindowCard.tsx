@@ -1,7 +1,7 @@
 "use client";
 
 import type { PricePoint } from "@/lib/types";
-import { cheapestWindow, formatEurCents, localTimeLabel, totalPrice, type Surcharge } from "@/lib/priceUtils";
+import { cheapestWindow, formatEurCents, localDateLabel, localTimeLabel, todayKey, localDateKey, totalPrice, type Surcharge } from "@/lib/priceUtils";
 import { Card } from "./Card";
 
 export function CheapestWindowCard({ todayPoints, tomorrowPoints, windowHours, onWindowHoursChange, surcharge }: { todayPoints: PricePoint[]; tomorrowPoints: PricePoint[]; windowHours: number; onWindowHoursChange: (h: number) => void; surcharge: Surcharge }) {
@@ -27,6 +27,9 @@ export function CheapestWindowCard({ todayPoints, tomorrowPoints, windowHours, o
         <div>
           <p className="text-2xl font-bold tabular-nums">
             {localTimeLabel(win.points[0].timestamp)} – {localTimeLabel(new Date(new Date(win.points[win.points.length - 1].timestamp).getTime() + 3600 * 1000).toISOString())}
+          </p>
+          <p className="mt-0.5 text-sm text-black/50 dark:text-white/50">
+            {localDateKey(win.points[0].timestamp) === todayKey() ? "Vandaag" : `Morgen (${localDateLabel(win.points[0].timestamp)})`}
           </p>
           <p className="mt-1 text-sm text-black/60 dark:text-white/60">
             Gemiddeld <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatEurCents(totalPrice({ timestamp: win.points[0].timestamp, priceExVat: win.averagePriceExVat }, surcharge))}</span> / kWh in dit blok
