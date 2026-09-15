@@ -1,4 +1,4 @@
-import { fetchGasPrices } from "@/lib/easyenergy";
+import { fetchGasPrices } from "@/lib/energyzero";
 
 export const revalidate = 300;
 
@@ -11,7 +11,7 @@ export async function GET() {
     const points = await fetchGasPrices(start, end);
     return Response.json({
       points,
-      source: "easyEnergy LEBA (EEX gas day-ahead)",
+      source: "EnergyZero (gas day-ahead)",
       fetchedAt: new Date().toISOString(),
     });
   } catch (err) {

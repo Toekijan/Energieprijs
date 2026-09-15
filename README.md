@@ -7,10 +7,10 @@ zijn.
 ## Databron
 
 De app haalt de kale groothandelsmarktprijzen op bij de gratis, publieke
-(ongeautoriseerde) API van easyEnergy:
+(ongeautoriseerde) API van EnergyZero:
 
-- **Stroom**: `getapxtariffs` — EPEX Day Ahead, per uur, in €/kWh.
-- **Gas**: `getlebatariffs` — EEX/LEBA, per dag, in €/m³.
+- **Stroom**: `usageType=1` — EPEX Day Ahead, per uur, in €/kWh.
+- **Gas**: `usageType=3` — day-ahead, per dag, in €/m³.
 
 Dit zijn dezelfde marktprijzen waar leveranciers zoals Vattenfall (o.a. bij
 FlexPrijs/dynamische contracten) hun inkoop op baseren. De opgehaalde prijs
@@ -25,11 +25,11 @@ om geen onjuiste tarieven te suggereren.
 > indicatie van marktontwikkelingen; controleer altijd je eigen contract en
 > jaarafrekening voor de tarieven die daadwerkelijk voor jou gelden.
 >
-> Deze publieke API kon vanuit de ontwikkelomgeving waarin deze app is
-> gebouwd niet live getest worden (uitgaand netwerkverkeer daar is beperkt
-> tot een allowlist). Test na het starten (`npm run dev`) of de dashboardkaarten
-> daadwerkelijk data tonen; mocht easyEnergy het endpoint gewijzigd hebben,
-> pas dan de parsing in `src/lib/easyenergy.ts` aan.
+> Deze app gebruikte oorspronkelijk de publieke tarieven-API van easyEnergy,
+> maar die is sinds mei 2026 volledig uit de lucht (easyEnergy is
+> overgestapt op een mobiele app en biedt geen open API meer aan). De app
+> is daarom overgezet op de publieke API van EnergyZero
+> (`src/lib/energyzero.ts`), die dezelfde soort day-ahead data levert.
 
 ## Functionaliteit
 
@@ -65,8 +65,8 @@ npm run start
 
 ## Architectuur
 
-- `src/lib/easyenergy.ts` — server-side fetch + normalisatie van de
-  easyEnergy-tarieven.
+- `src/lib/energyzero.ts` — server-side fetch + normalisatie van de
+  EnergyZero-tarieven.
 - `src/app/api/electricity/route.ts`, `src/app/api/gas/route.ts` —
   API-routes die als proxy dienen (voorkomt CORS-problemen in de browser en
   cachen de respons 5 minuten).
