@@ -3,6 +3,7 @@
 import { CheapestWindowCard } from "@/components/CheapestWindowCard";
 import { CurrentElectricityCard } from "@/components/CurrentElectricityCard";
 import { ElectricityChart } from "@/components/ElectricityChart";
+import { ElectricityPriceTable } from "@/components/ElectricityPriceTable";
 import { GasSection } from "@/components/GasSection";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { StatusBar } from "@/components/StatusBar";
@@ -40,6 +41,8 @@ export default function Home() {
       </div>
 
       <ElectricityChart todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} surcharge={electricitySurcharge} />
+
+      <ElectricityPriceTable todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} surcharge={electricitySurcharge} />
 
       <GasSection points={gasPoints} surcharge={gasSurcharge} />
 
