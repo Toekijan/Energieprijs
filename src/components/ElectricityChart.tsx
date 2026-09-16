@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { PricePoint } from "@/lib/types";
-import { cheapest, formatEurCents, localTimeLabel, mostExpensive, totalPrice, type Surcharge } from "@/lib/priceUtils";
+import { cheapest, formatEurCents, inferIntervalMinutes, localTimeLabel, mostExpensive, totalPrice, type Surcharge } from "@/lib/priceUtils";
 import { Card } from "./Card";
 
 function colorFor(value: number, min: number, max: number): string {
@@ -27,6 +27,8 @@ export function ElectricityChart({ todayPoints, tomorrowPoints, surcharge }: { t
     return () => clearInterval(id);
   }, []);
 
+  const intervalMs = inferIntervalMinutes(points) * 60_000;
+
   const chartData = useMemo(
     () =>
       points.map((p) => {
@@ -34,10 +36,10 @@ export function ElectricityChart({ todayPoints, tomorrowPoints, surcharge }: { t
         return {
           time: localTimeLabel(p.timestamp),
           price: totalPrice(p, surcharge),
-          isNow: day === "today" && nowMs !== null && t <= nowMs && nowMs - t < 3600 * 1000,
+          isNow: day === "today" && nowMs !== null && t <= nowMs && nowMs - t < intervalMs,
         };
       }),
-    [points, surcharge, day, nowMs]
+    [points, surcharge, day, nowMs, intervalMs]
   );
 
   const min = chartData.length ? Math.min(...chartData.map((d) => d.price)) : 0;
@@ -48,7 +50,7 @@ export function ElectricityChart({ todayPoints, tomorrowPoints, surcharge }: { t
   const expensivePoint = mostExpensive(points);
 
   return (
-    <Card title="Stroomprijs per uur (EPEX day-ahead)" subtitle="Kale marktprijs incl. jouw opslag en BTW">
+    <Card title="Stroomprijs per kwartier (EPEX day-ahead)" subtitle="Kale marktprijs incl. jouw opslag en BTW">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex gap-1 rounded-lg bg-black/5 p-1 dark:bg-white/10">
           <button onClick={() => setDay("today")} className={`rounded-md px-3 py-1 text-sm font-medium transition ${day === "today" ? "bg-white shadow dark:bg-white/20" : "text-black/50 dark:text-white/50"}`}>
@@ -68,7 +70,7 @@ export function ElectricityChart({ todayPoints, tomorrowPoints, surcharge }: { t
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-              <XAxis dataKey="time" interval={2} tick={{ fontSize: 11 }} />
+              <XAxis dataKey="time" interval={Math.max(0, Math.ceil(chartData.length / 12) - 1)} tick={{ fontSize: 11 }} />
               <YAxis tickFormatter={(v) => formatEurCents(v)} width={56} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => [formatEurCents(v) + " / kWh", "Prijs"]} labelFormatter={(l) => `Tijd: ${l}`} />
               <ReferenceLine y={avg} stroke="#888" strokeDasharray="4 4" label={{ value: "gem.", position: "insideTopRight", fontSize: 10, fill: "#888" }} />

@@ -9,8 +9,8 @@ zijn.
 De app haalt de kale groothandelsmarktprijzen op bij de gratis, publieke
 (ongeautoriseerde) API van EnergyZero:
 
-- **Stroom**: `usageType=1` — EPEX Day Ahead, per uur, in €/kWh.
-- **Gas**: `usageType=3` — day-ahead, per dag, in €/m³.
+- **Stroom**: `usageType=1`, `interval=3` — EPEX Day Ahead, per kwartier (96 prijzen/dag, de marktstandaard sinds 1 januari 2026), in €/kWh.
+- **Gas**: `usageType=3`, `interval=4` — day-ahead, per dag, in €/m³ (gas kent geen kwartierprijzen).
 
 Dit zijn dezelfde marktprijzen waar leveranciers zoals Vattenfall (o.a. bij
 FlexPrijs/dynamische contracten) hun inkoop op baseren. De opgehaalde prijs
@@ -33,15 +33,19 @@ om geen onjuiste tarieven te suggereren.
 
 ## Functionaliteit
 
-- **Huidige stroomprijs** (huidig uur), incl. vergelijking met het
+- **Huidige stroomprijs** (huidig kwartier), incl. vergelijking met het
   daggemiddelde ("voordelig" / "gemiddeld" / "duur").
-- **Uurgrafiek stroom** voor vandaag en (zodra gepubliceerd, doorgaans vanaf
-  ~15:00 uur) morgen, met kleurgradiënt goedkoop→duur en het huidige uur
-  gemarkeerd.
-- **Goedkoopste aaneengesloten periode** van 1–8 uur (instelbaar), handig om
-  bv. de wasmachine, EV-lader of warmtepomp te plannen.
+- **Kwartiergrafiek stroom** voor vandaag en (zodra gepubliceerd, doorgaans
+  vanaf ~15:00 uur) morgen, met kleurgradiënt goedkoop→duur en het huidige
+  kwartier gemarkeerd.
+- **Prijzentabel** met alle kwartierprijzen van de dag, sorteerbaar op tijd
+  of op prijs (laag → hoog).
+- **Goedkoopste aaneengesloten periode** van 15 minuten tot 8 uur
+  (instelbaar), handig om bv. de wasmachine, EV-lader of warmtepomp te
+  plannen.
 - **Gasprijs** van vandaag plus een historische grafiek (afgelopen dagen +
-  eerstvolgende dag), met de goedkoopste dag gemarkeerd.
+  eerstvolgende dag), met de goedkoopste dag gemarkeerd. Gas kent geen
+  kwartierprijzen en blijft daarom per dag.
 - Automatische verversing elke 5 minuten, plus een handmatige
   ververs-knop.
 - Instellingen (opslag/BTW) worden lokaal in je browser opgeslagen

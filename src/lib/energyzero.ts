@@ -9,6 +9,11 @@ const BASE_URL = "https://api.energyzero.nl/v1/energyprices";
  * inclBtw=false op zodat we de kale marktprijs terugkrijgen, excl. BTW,
  * excl. energiebelasting en excl. leveranciersopslag.
  *
+ * interval bepaalt de granulariteit: 3 = kwartierprijzen (alleen stroom;
+ * sinds 1 januari 2026 de marktstandaard i.p.v. uurprijzen), 4 = uurprijzen.
+ * Gas kent geen kwartierprijzen, dus daar gebruiken we interval 4 en
+ * dedupliceren we hieronder naar één punt per dag.
+ *
  * easyEnergy's publieke tarieven-API (voorheen gebruikt door deze app) is
  * sinds mei 2026 volledig uit de lucht: easyEnergy is overgestapt op een
  * mobiele app en biedt geen open API meer aan.
@@ -42,11 +47,11 @@ function normalize(raw: unknown): PricePoint[] {
   return points;
 }
 
-async function fetchPrices(usageType: 1 | 3, start: Date, end: Date): Promise<PricePoint[]> {
+async function fetchPrices(usageType: 1 | 3, interval: 3 | 4, start: Date, end: Date): Promise<PricePoint[]> {
   const params = new URLSearchParams({
     fromDate: start.toISOString(),
     tillDate: end.toISOString(),
-    interval: "4",
+    interval: String(interval),
     usageType: String(usageType),
     inclBtw: "false",
   });
@@ -65,9 +70,9 @@ async function fetchPrices(usageType: 1 | 3, start: Date, end: Date): Promise<Pr
   return normalize(data);
 }
 
-/** Uurlijkse day-ahead stroomprijzen (EPEX), excl. BTW/belasting/opslag. */
+/** Kwartierlijkse day-ahead stroomprijzen (EPEX), excl. BTW/belasting/opslag. */
 export function fetchElectricityPrices(start: Date, end: Date) {
-  return fetchPrices(1, start, end);
+  return fetchPrices(1, 3, start, end);
 }
 
 /**
@@ -77,7 +82,7 @@ export function fetchElectricityPrices(start: Date, end: Date) {
  * daarom één punt per kalenderdag over.
  */
 export async function fetchGasPrices(start: Date, end: Date): Promise<PricePoint[]> {
-  const points = await fetchPrices(3, start, end);
+  const points = await fetchPrices(3, 4, start, end);
   const seenDays = new Set<string>();
   const daily: PricePoint[] = [];
   for (const p of points) {

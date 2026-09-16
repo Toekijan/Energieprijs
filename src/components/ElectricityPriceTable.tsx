@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { PricePoint } from "@/lib/types";
-import { cheapest, formatEurCents, localTimeLabel, mostExpensive, totalPrice, type Surcharge } from "@/lib/priceUtils";
+import { cheapest, formatEurCents, inferIntervalMinutes, localTimeLabel, mostExpensive, totalPrice, type Surcharge } from "@/lib/priceUtils";
 import { Card } from "./Card";
 
 type SortMode = "time" | "price";
@@ -23,6 +23,7 @@ export function ElectricityPriceTable({ todayPoints, tomorrowPoints, surcharge }
   const points = day === "tomorrow" ? tomorrowPoints : todayPoints;
   const cheapestPoint = cheapest(points);
   const expensivePoint = mostExpensive(points);
+  const intervalMs = inferIntervalMinutes(points) * 60_000;
 
   const rows = useMemo(() => {
     const withTotals = points.map((p) => ({ point: p, price: totalPrice(p, surcharge) }));
@@ -31,7 +32,7 @@ export function ElectricityPriceTable({ todayPoints, tomorrowPoints, surcharge }
   }, [points, surcharge, sort]);
 
   return (
-    <Card title="Prijzen per uur" subtitle="Volledig overzicht van tijdstip en kWh-prijs">
+    <Card title="Prijzen per kwartier" subtitle="Volledig overzicht van tijdstip en kWh-prijs">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-lg bg-black/5 p-1 dark:bg-white/10">
           <button onClick={() => setDay("today")} className={`rounded-md px-3 py-1 text-sm font-medium transition ${day === "today" ? "bg-white shadow dark:bg-white/20" : "text-black/50 dark:text-white/50"}`}>
@@ -68,7 +69,7 @@ export function ElectricityPriceTable({ todayPoints, tomorrowPoints, surcharge }
                 const isCheapest = cheapestPoint?.point.timestamp === point.timestamp;
                 const isExpensive = expensivePoint?.point.timestamp === point.timestamp;
                 const pointMs = new Date(point.timestamp).getTime();
-                const isNow = day === "today" && nowMs !== null && pointMs <= nowMs && nowMs - pointMs < 3600 * 1000;
+                const isNow = day === "today" && nowMs !== null && pointMs <= nowMs && nowMs - pointMs < intervalMs;
                 return (
                   <tr
                     key={point.timestamp}

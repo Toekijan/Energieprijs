@@ -89,29 +89,47 @@ export function average(points: PricePoint[]): number | null {
   return points.reduce((sum, p) => sum + p.priceExVat, 0) / points.length;
 }
 
+/**
+ * Bepaalt de tijdsduur (in minuten) tussen opeenvolgende prijspunten, bv. 15
+ * voor kwartierprijzen of 60 voor uurprijzen. Gas blijft altijd 1 punt/dag
+ * (elders al gededupliceerd), dus deze functie is vooral relevant voor stroom.
+ */
+export function inferIntervalMinutes(points: PricePoint[]): number {
+  if (points.length < 2) return 60;
+  const diffMs = new Date(points[1].timestamp).getTime() - new Date(points[0].timestamp).getTime();
+  const minutes = diffMs / 60_000;
+  return minutes > 0 ? minutes : 60;
+}
+
 export interface CheapestWindow {
   startIndex: number;
   points: PricePoint[];
   averagePriceExVat: number;
 }
 
-/** Vindt het goedkoopste aaneengesloten blok van `hours` uur binnen een dag (chronologisch gesorteerde punten). */
+/**
+ * Vindt het goedkoopste aaneengesloten blok van `hours` uur (mag een
+ * fractie zijn, bv. 0.25) binnen een dag, ongeacht of `points` uur- of
+ * kwartierprijzen bevat (chronologisch gesorteerd verwacht).
+ */
 export function cheapestWindow(points: PricePoint[], hours: number): CheapestWindow | null {
-  if (points.length === 0 || hours < 1 || hours > points.length) return null;
+  const intervalMinutes = inferIntervalMinutes(points);
+  const windowSize = Math.max(1, Math.round((hours * 60) / intervalMinutes));
+  if (points.length === 0 || windowSize > points.length) return null;
 
   let bestStart = 0;
   let bestSum = Infinity;
-  for (let start = 0; start + hours <= points.length; start++) {
+  for (let start = 0; start + windowSize <= points.length; start++) {
     let sum = 0;
-    for (let i = start; i < start + hours; i++) sum += points[i].priceExVat;
+    for (let i = start; i < start + windowSize; i++) sum += points[i].priceExVat;
     if (sum < bestSum) {
       bestSum = sum;
       bestStart = start;
     }
   }
 
-  const windowPoints = points.slice(bestStart, bestStart + hours);
-  return { startIndex: bestStart, points: windowPoints, averagePriceExVat: bestSum / hours };
+  const windowPoints = points.slice(bestStart, bestStart + windowSize);
+  return { startIndex: bestStart, points: windowPoints, averagePriceExVat: bestSum / windowSize };
 }
 
 export function currentPoint(points: PricePoint[]): PricePoint | null {
