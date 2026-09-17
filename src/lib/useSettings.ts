@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 
 export interface Settings {
-  /** Leveranciersopslag + energiebelasting excl. BTW, in euro per kWh. */
+  /** Energiebelasting excl. BTW, in euro per kWh (geldt bij afname). */
+  electricityTaxExVat: number;
+  /** Leveranciersopslag (inkoopvergoeding) excl. BTW, in euro per kWh bij afname. */
   electricitySurchargeExVat: number;
+  /** Leveranciersopslag excl. BTW, in euro per kWh bij teruglevering (vaak 0). */
+  electricityFeedInSurchargeExVat: number;
   /** Leveranciersopslag + energiebelasting excl. BTW, in euro per m3. */
   gasSurchargeExVat: number;
   vatPercent: number;
@@ -12,8 +16,15 @@ export interface Settings {
   windowHours: number;
 }
 
+// Standaardwaarden gebaseerd op Vattenfall FlexPrijs (dynamisch contract) en de
+// wettelijke energiebelasting 2026, zodat de app direct een realistische
+// all-in afneemprijs en terugleverprijs toont. Vul je eigen tarieven in via
+// Instellingen als je andere getallen op je jaarnota ziet — deze waarden
+// wijzigen regelmatig en zijn dus indicatief.
 const DEFAULT_SETTINGS: Settings = {
-  electricitySurchargeExVat: 0,
+  electricityTaxExVat: 0.09161,
+  electricitySurchargeExVat: 0.0255,
+  electricityFeedInSurchargeExVat: 0,
   gasSurchargeExVat: 0,
   vatPercent: 21,
   windowHours: 3,
