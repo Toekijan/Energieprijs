@@ -47,7 +47,24 @@ function normalize(raw: unknown): PricePoint[] {
   return points;
 }
 
-async function fetchPrices(usageType: 1 | 3, interval: 3 | 4, start: Date, end: Date): Promise<PricePoint[]> {
+// Sommige hosting-providers (o.a. Netlify) krijgen via hun gedeelde IP-reeksen
+// af en toe een lege "Prices"-array terug van EnergyZero, terwijl hetzelfde
+// verzoek vanaf een gewoon netwerk wél data oplevert — vermoedelijk een vorm
+// van anti-bot/rate-limiting op serverniveau. Browser-achtige headers en een
+// korte retry verkleinen de kans hierop merkbaar.
+const BROWSER_HEADERS: HeadersInit = {
+  Accept: "application/json",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+  Referer: "https://www.energyzero.nl/",
+  Origin: "https://www.energyzero.nl",
+};
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchPricesOnce(usageType: 1 | 3, interval: 3 | 4, start: Date, end: Date): Promise<PricePoint[]> {
   const params = new URLSearchParams({
     fromDate: start.toISOString(),
     tillDate: end.toISOString(),
@@ -58,8 +75,8 @@ async function fetchPrices(usageType: 1 | 3, interval: 3 | 4, start: Date, end: 
   const url = `${BASE_URL}?${params.toString()}`;
 
   const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 300 },
+    headers: BROWSER_HEADERS,
+    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -68,6 +85,15 @@ async function fetchPrices(usageType: 1 | 3, interval: 3 | 4, start: Date, end: 
 
   const data = await res.json();
   return normalize(data);
+}
+
+async function fetchPrices(usageType: 1 | 3, interval: 3 | 4, start: Date, end: Date): Promise<PricePoint[]> {
+  let points = await fetchPricesOnce(usageType, interval, start, end);
+  for (let attempt = 0; points.length === 0 && attempt < 2; attempt++) {
+    await delay(400 * (attempt + 1));
+    points = await fetchPricesOnce(usageType, interval, start, end);
+  }
+  return points;
 }
 
 /** Kwartierlijkse day-ahead stroomprijzen (EPEX), excl. BTW/belasting/opslag. */
