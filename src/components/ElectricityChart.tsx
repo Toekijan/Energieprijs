@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { PricePoint } from "@/lib/types";
 import { cheapest, formatEurCents, inferIntervalMinutes, localTimeLabel, mostExpensive, totalPrice, type Surcharge } from "@/lib/priceUtils";
+import { useElementWidth } from "@/lib/useElementWidth";
 import { Card } from "./Card";
+
+// Minimale breedte (px) die een tijdlabel als "00:00" nodig heeft om leesbaar
+// te blijven zonder overlap met de buren, incl. wat marge.
+const MIN_LABEL_WIDTH_PX = 44;
 
 function colorFor(value: number, min: number, max: number): string {
   if (max === min) return "#60a5fa";
@@ -49,6 +54,10 @@ export function ElectricityChart({ todayPoints, tomorrowPoints, surcharge }: { t
   const cheapestPoint = cheapest(points);
   const expensivePoint = mostExpensive(points);
 
+  const { ref: chartWrapperRef, width: chartWidth } = useElementWidth<HTMLDivElement>();
+  const maxTicks = chartWidth > 0 ? Math.max(2, Math.floor(chartWidth / MIN_LABEL_WIDTH_PX)) : 12;
+  const tickInterval = Math.max(0, Math.ceil(chartData.length / maxTicks) - 1);
+
   return (
     <Card title="Stroomprijs per kwartier (EPEX day-ahead)" subtitle="Kale marktprijs incl. jouw opslag en BTW">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -67,10 +76,11 @@ export function ElectricityChart({ todayPoints, tomorrowPoints, surcharge }: { t
         <p className="text-sm text-black/50 dark:text-white/50">Geen data beschikbaar voor deze dag.</p>
       ) : (
         <>
+          <div ref={chartWrapperRef}>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-              <XAxis dataKey="time" interval={Math.max(0, Math.ceil(chartData.length / 12) - 1)} tick={{ fontSize: 11 }} />
+              <XAxis dataKey="time" interval={tickInterval} tick={{ fontSize: 11 }} />
               <YAxis tickFormatter={(v) => formatEurCents(v)} width={56} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => [formatEurCents(v) + " / kWh", "Prijs"]} labelFormatter={(l) => `Tijd: ${l}`} />
               <ReferenceLine y={avg} stroke="#888" strokeDasharray="4 4" label={{ value: "gem.", position: "insideTopRight", fontSize: 10, fill: "#888" }} />
@@ -81,6 +91,7 @@ export function ElectricityChart({ todayPoints, tomorrowPoints, surcharge }: { t
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </div>
 
           <div className="mt-3 flex flex-wrap gap-4 text-sm">
             {cheapestPoint && (
