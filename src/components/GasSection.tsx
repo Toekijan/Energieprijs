@@ -3,7 +3,12 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { PricePoint } from "@/lib/types";
 import { cheapest, formatEurCents, localDateLabel, todayKey, totalPrice, type Surcharge } from "@/lib/priceUtils";
+import { useElementWidth } from "@/lib/useElementWidth";
 import { Card } from "./Card";
+
+// Minimale breedte (px) die een daglabel als "do 10 sep" nodig heeft om
+// leesbaar te blijven zonder overlap met de buren, incl. wat marge.
+const MIN_LABEL_WIDTH_PX = 72;
 
 function colorFor(value: number, min: number, max: number): string {
   if (max === min) return "#60a5fa";
@@ -23,6 +28,10 @@ export function GasSection({ points, surcharge }: { points: PricePoint[]; surcha
   const min = chartData.length ? Math.min(...chartData.map((d) => d.price)) : 0;
   const max = chartData.length ? Math.max(...chartData.map((d) => d.price)) : 0;
 
+  const { ref: chartWrapperRef, width: chartWidth } = useElementWidth<HTMLDivElement>();
+  const maxTicks = chartWidth > 0 ? Math.max(2, Math.floor(chartWidth / MIN_LABEL_WIDTH_PX)) : chartData.length;
+  const tickInterval = Math.max(0, Math.ceil(chartData.length / maxTicks) - 1);
+
   return (
     <Card title="Gasprijs (day-ahead)" subtitle="Gas wordt per dag geprijsd, niet per uur">
       {today ? (
@@ -37,19 +46,21 @@ export function GasSection({ points, surcharge }: { points: PricePoint[]; surcha
       {chartData.length === 0 ? (
         <p className="text-sm text-black/50 dark:text-white/50">Geen historische data beschikbaar.</p>
       ) : (
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-            <YAxis tickFormatter={(v) => formatEurCents(v)} width={56} tick={{ fontSize: 11 }} />
-            <Tooltip formatter={(v: number) => [formatEurCents(v) + " / m³", "Prijs"]} />
-            <Bar dataKey="price" radius={[3, 3, 0, 0]}>
-              {chartData.map((d, i) => (
-                <Cell key={i} fill={colorFor(d.price, min, max)} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <div ref={chartWrapperRef}>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+              <XAxis dataKey="date" interval={tickInterval} tick={{ fontSize: 10 }} />
+              <YAxis tickFormatter={(v) => formatEurCents(v)} width={56} tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v: number) => [formatEurCents(v) + " / m³", "Prijs"]} />
+              <Bar dataKey="price" radius={[3, 3, 0, 0]}>
+                {chartData.map((d, i) => (
+                  <Cell key={i} fill={colorFor(d.price, min, max)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
 
       {cheapestOfSet && (

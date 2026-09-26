@@ -23,7 +23,8 @@ export default function Home() {
 
   const gasPoints = gas.data?.points ?? [];
 
-  const electricitySurcharge = { surchargeExVat: settings.electricitySurchargeExVat, vatPercent: settings.vatPercent };
+  const electricityConsumptionSurcharge = { surchargeExVat: settings.electricityTaxExVat + settings.electricitySurchargeExVat, vatPercent: settings.vatPercent };
+  const electricityFeedInSurcharge = { surchargeExVat: settings.electricityFeedInSurchargeExVat, vatPercent: settings.vatPercent };
   const gasSurcharge = { surchargeExVat: settings.gasSurchargeExVat, vatPercent: settings.vatPercent };
 
   return (
@@ -36,13 +37,13 @@ export default function Home() {
       <StatusBar fetchedAt={electricity.data?.fetchedAt ?? gas.data?.fetchedAt ?? null} error={electricity.error ?? gas.error} onRefresh={() => { electricity.refresh(); gas.refresh(); }} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <CurrentElectricityCard current={current} todayPoints={todayPoints} surcharge={electricitySurcharge} />
-        <CheapestWindowCard todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} windowHours={settings.windowHours} onWindowHoursChange={(h) => setSettings({ ...settings, windowHours: h })} surcharge={electricitySurcharge} />
+        <CurrentElectricityCard current={current} todayPoints={todayPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
+        <CheapestWindowCard todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} windowHours={settings.windowHours} onWindowHoursChange={(h) => setSettings({ ...settings, windowHours: h })} surcharge={electricityConsumptionSurcharge} />
       </div>
 
-      <ElectricityChart todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} surcharge={electricitySurcharge} />
+      <ElectricityChart todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
-      <ElectricityPriceTable todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} surcharge={electricitySurcharge} />
+      <ElectricityPriceTable todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
       <GasSection points={gasPoints} surcharge={gasSurcharge} />
 
