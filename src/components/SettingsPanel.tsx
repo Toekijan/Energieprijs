@@ -36,10 +36,18 @@ export function SettingsPanel({ settings, onChange }: { settings: Settings; onCh
             <span className="mb-1 block text-black/60 dark:text-white/60">BTW %</span>
             <input type="number" step="1" value={settings.vatPercent} onChange={(e) => onChange({ ...settings, vatPercent: Number(e.target.value) })} className="w-full rounded-md border border-black/10 bg-transparent px-2 py-1.5 dark:border-white/20" />
           </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-black/60 dark:text-white/60">Geschat huisverbruik (W, voor zonnepanelen-sectie)</span>
+            <input type="number" step="10" value={settings.solarBaselineLoadW} onChange={(e) => onChange({ ...settings, solarBaselineLoadW: Number(e.target.value) })} className="w-full rounded-md border border-black/10 bg-transparent px-2 py-1.5 dark:border-white/20" />
+          </label>
           <p className="col-span-full text-xs text-black/40 dark:text-white/40">
             De voorgevulde waarden zijn gebaseerd op Vattenfall FlexPrijs (dynamisch contract) en de wettelijke energiebelasting 2026 — inkoopvergoedingen wijzigen bij leveranciers regelmatig (tot 4x per jaar) en zijn dus
             indicatief. Vul je eigen tarieven in zoals vermeld in Mijn Vattenfall of op je jaarnota voor een exacte afneem- en terugleverprijs. Terugleverprijs = marktprijs + opslag teruglevering (vaak 0), zonder
             energiebelasting.
+          </p>
+          <p className="col-span-full text-xs text-black/40 dark:text-white/40">
+            Geschat huisverbruik wordt gebruikt om in de zonnepanelen-sectie te bepalen welke kwartieren je opwek je verbruik dekt (&quot;zelfvoorzienend&quot;) — alleen relevant/zichtbaar als Enphase gekoppeld is, en een
+            ruwe inschatting zolang er geen apart verbruiksmeter beschikbaar is.
           </p>
         </div>
       )}

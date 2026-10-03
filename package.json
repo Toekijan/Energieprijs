@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "enphase:setup": "node scripts/enphase-setup.mjs"
   },
   "dependencies": {
     "next": "16.3.5",

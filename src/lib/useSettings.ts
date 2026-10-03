@@ -14,6 +14,12 @@ export interface Settings {
   vatPercent: number;
   /** Lengte van het "goedkoopste blok" voor stroom, in hele uren. */
   windowHours: number;
+  /**
+   * Geschat eigen huisverbruik (W) om "zelfvoorzienende" kwartieren te
+   * bepalen zonder apart verbruiksmeter — zie SolarChart. Pas aan naar jouw
+   * situatie; dit is een ruwe inschatting, geen meting.
+   */
+  solarBaselineLoadW: number;
 }
 
 // Standaardwaarden gebaseerd op Vattenfall FlexPrijs (dynamisch contract) en de
@@ -28,6 +34,7 @@ const DEFAULT_SETTINGS: Settings = {
   gasSurchargeExVat: 0,
   vatPercent: 21,
   windowHours: 3,
+  solarBaselineLoadW: 400,
 };
 
 const STORAGE_KEY = "energieprijs.settings.v1";

@@ -6,14 +6,17 @@ import { ElectricityChart } from "@/components/ElectricityChart";
 import { ElectricityPriceTable } from "@/components/ElectricityPriceTable";
 import { GasSection } from "@/components/GasSection";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { SolarSection } from "@/components/SolarSection";
 import { StatusBar } from "@/components/StatusBar";
 import { usePrices } from "@/lib/usePrices";
 import { useSettings } from "@/lib/useSettings";
+import { useSolarData } from "@/lib/useSolarData";
 import { currentPoint, pointsForDate, tomorrowKey, todayKey } from "@/lib/priceUtils";
 
 export default function Home() {
   const electricity = usePrices("/api/electricity");
   const gas = usePrices("/api/gas");
+  const solar = useSolarData();
   const { settings, setSettings } = useSettings();
 
   const electricityPoints = electricity.data?.points ?? [];
@@ -34,7 +37,7 @@ export default function Home() {
         <p className="mt-1 text-sm text-black/60 dark:text-white/60">Dynamische day-ahead stroom- (EPEX) en gasprijzen (EEX), met de goedkoopste momenten in beeld.</p>
       </header>
 
-      <StatusBar fetchedAt={electricity.data?.fetchedAt ?? gas.data?.fetchedAt ?? null} error={electricity.error ?? gas.error} onRefresh={() => { electricity.refresh(); gas.refresh(); }} />
+      <StatusBar fetchedAt={electricity.data?.fetchedAt ?? gas.data?.fetchedAt ?? null} error={electricity.error ?? gas.error} onRefresh={() => { electricity.refresh(); gas.refresh(); solar.refresh(); }} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CurrentElectricityCard current={current} todayPoints={todayPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
@@ -46,6 +49,8 @@ export default function Home() {
       <ElectricityPriceTable todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
       <GasSection points={gasPoints} surcharge={gasSurcharge} />
+
+      <SolarSection points={solar.data?.points ?? []} currentPowerW={solar.data?.currentPowerW ?? null} baselineLoadW={settings.solarBaselineLoadW} error={solar.error} notConfigured={solar.notConfigured} />
 
       <SettingsPanel settings={settings} onChange={setSettings} />
 

@@ -14,3 +14,20 @@ export interface PricesResponse {
 export interface PricesError {
   error: string;
 }
+
+export interface SolarPoint {
+  /** ISO-8601 tijdstip in UTC, einde van het kwartier. */
+  timestamp: string;
+  /** Gemiddeld vermogen in dat kwartier, in watt. */
+  powerW: number;
+  /** Opgewekte energie in dat kwartier, in watt-uur. */
+  energyWh: number;
+}
+
+export interface SolarResponse {
+  points: SolarPoint[];
+  /** Huidig vermogen (W) zoals gerapporteerd door de Enphase-summary, indien beschikbaar. */
+  currentPowerW: number | null;
+  source: string;
+  fetchedAt: string;
+}
