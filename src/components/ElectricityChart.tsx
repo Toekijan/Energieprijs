@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bar, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { PricePoint } from "@/lib/types";
+import type { PricePoint, SolarPoint } from "@/lib/types";
+import { solarKwhPerQuarter } from "@/lib/solarUtils";
 import { cheapest, formatEurCents, inferIntervalMinutes, localTimeLabel, mostExpensive, totalPrice, type Surcharge } from "@/lib/priceUtils";
 import { useElementWidth } from "@/lib/useElementWidth";
 import { Card } from "./Card";
@@ -22,13 +23,13 @@ function colorFor(value: number, min: number, max: number, invert = false): stri
 }
 
 export function ElectricityChart({
-  solarIntervals,
+  solarPoints,
   todayPoints,
   tomorrowPoints,
   consumptionSurcharge,
   feedInSurcharge,
 }: {
-  solarIntervals: { timestamp: string; wh: number }[];
+  solarPoints: SolarPoint[];
   todayPoints: PricePoint[];
   tomorrowPoints: PricePoint[];
   consumptionSurcharge: Surcharge;
@@ -51,8 +52,8 @@ export function ElectricityChart({
 
   const intervalMs = inferIntervalMinutes(points) * 60_000;
 
-  const solarByTime = useMemo(() => new Map(solarIntervals.map((i) => [new Date(i.timestamp).getTime(), i.wh / 1000])), [solarIntervals]);
-  const showSolar = day === "today" && solarIntervals.length > 0;
+  const solarByTime = useMemo(() => solarKwhPerQuarter(solarPoints), [solarPoints]);
+  const showSolar = day === "today" && solarByTime.size > 0;
 
   const chartData = useMemo(
     () =>

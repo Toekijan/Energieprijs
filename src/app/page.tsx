@@ -6,16 +6,18 @@ import { ElectricityChart } from "@/components/ElectricityChart";
 import { ElectricityPriceTable } from "@/components/ElectricityPriceTable";
 import { GasSection } from "@/components/GasSection";
 import { SettingsPanel } from "@/components/SettingsPanel";
-import { SolarCard } from "@/components/SolarCard";
+import { SolarSection } from "@/components/SolarSection";
 import { StatusBar } from "@/components/StatusBar";
 import { usePrices } from "@/lib/usePrices";
 import { useSettings } from "@/lib/useSettings";
-import { feedInValueEur, useSolar } from "@/lib/useSolar";
-import { currentPoint, totalPrice, pointsForDate, tomorrowKey, todayKey } from "@/lib/priceUtils";
+import { useSolarData } from "@/lib/useSolarData";
+import { feedInValueEur, solarKwhPerQuarter } from "@/lib/solarUtils";
+import { currentPoint, pointsForDate, tomorrowKey, todayKey } from "@/lib/priceUtils";
 
 export default function Home() {
   const electricity = usePrices("/api/electricity");
   const gas = usePrices("/api/gas");
+  const solar = useSolarData();
   const { settings, setSettings } = useSettings();
 
   const electricityPoints = electricity.data?.points ?? [];
@@ -25,15 +27,12 @@ export default function Home() {
 
   const gasPoints = gas.data?.points ?? [];
 
-  const solar = useSolar();
-  const solarIntervals = solar?.intervals ?? [];
-
   const electricityConsumptionSurcharge = { surchargeExVat: settings.electricityTaxExVat + settings.electricitySurchargeExVat, vatPercent: settings.vatPercent };
   const electricityFeedInSurcharge = { surchargeExVat: settings.electricityFeedInSurchargeExVat, vatPercent: settings.vatPercent };
   const gasSurcharge = { surchargeExVat: settings.gasSurchargeExVat, vatPercent: settings.vatPercent };
 
-  const feedInPriceByTime = new Map(todayPoints.map((p) => [new Date(p.timestamp).getTime(), totalPrice(p, electricityFeedInSurcharge)]));
-  const feedInValueToday = solar?.configured && !solar.error ? feedInValueEur(solarIntervals, feedInPriceByTime) : null;
+  const solarPoints = solar.data?.points ?? [];
+  const feedInValueToday = solar.data ? feedInValueEur(solarKwhPerQuarter(solarPoints), todayPoints, electricityFeedInSurcharge) : null;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
@@ -42,20 +41,20 @@ export default function Home() {
         <p className="mt-1 text-sm text-black/60 dark:text-white/60">Dynamische day-ahead stroom- (EPEX) en gasprijzen (EEX), met de goedkoopste momenten in beeld.</p>
       </header>
 
-      <StatusBar fetchedAt={electricity.data?.fetchedAt ?? gas.data?.fetchedAt ?? null} error={electricity.error ?? gas.error} onRefresh={() => { electricity.refresh(); gas.refresh(); }} />
+      <StatusBar fetchedAt={electricity.data?.fetchedAt ?? gas.data?.fetchedAt ?? null} error={electricity.error ?? gas.error} onRefresh={() => { electricity.refresh(); gas.refresh(); solar.refresh(); }} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CurrentElectricityCard current={current} todayPoints={todayPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
         <CheapestWindowCard todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} windowHours={settings.windowHours} onWindowHoursChange={(h) => setSettings({ ...settings, windowHours: h })} surcharge={electricityConsumptionSurcharge} />
       </div>
 
-      <SolarCard data={solar} feedInValueTodayEur={feedInValueToday} />
-
-      <ElectricityChart solarIntervals={solarIntervals} todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
+      <ElectricityChart solarPoints={solarPoints} todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
       <ElectricityPriceTable todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
       <GasSection points={gasPoints} surcharge={gasSurcharge} />
+
+      <SolarSection points={solarPoints} feedInValueTodayEur={feedInValueToday} currentPowerW={solar.data?.currentPowerW ?? null} baselineLoadW={settings.solarBaselineLoadW} error={solar.error} notConfigured={solar.notConfigured} />
 
       <SettingsPanel settings={settings} onChange={setSettings} />
 

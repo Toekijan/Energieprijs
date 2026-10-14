@@ -48,8 +48,65 @@ om geen onjuiste tarieven te suggereren.
   kwartierprijzen en blijft daarom per dag.
 - Automatische verversing elke 5 minuten, plus een handmatige
   ververs-knop.
+- **Zonnepanelen** (optioneel, Enphase): huidig vermogen, opwek vandaag en
+  een kwartiergrafiek met "zelfvoorzienende" kwartieren gemarkeerd — zie
+  "Zonnepanelen (Enphase)" hieronder.
 - Instellingen (opslag/BTW) worden lokaal in je browser opgeslagen
   (`localStorage`) — er wordt niets naar een server verstuurd.
+
+## Zonnepanelen (Enphase)
+
+Optioneel: koppel je Enphase-zonnepanelen om naast de prijzen ook je opwek te
+zien, en te zien welke kwartieren je opwek je geschatte huisverbruik dekt
+("zelfvoorzienend" — zie hieronder voor de beperking hiervan).
+
+> Deze koppeling is geschreven op basis van Enphase's publieke documentatie
+> en kon niet live getest worden in de omgeving waarin deze app gebouwd is
+> (geen netwerktoegang tot Enphase vanuit die sandbox). Test de koppeling na
+> het invullen van de env-variabelen; meld het als een stap niet klopt.
+
+### Setup
+
+1. Maak een gratis developer-account op <https://developer-v4.enphase.com>.
+2. Maak daar een "application" aan → je krijgt een **Client ID** en **Client
+   Secret**.
+3. Abonneer je op een plan (het gratis **Watt**-plan is voldoende om te
+   starten, maar heeft een beperkt aantal API-calls per maand — zie
+   "Beperkingen" hieronder) → je krijgt een **API Key**.
+4. Zorg dat jouw zonnepanelensysteem gekoppeld is aan je account op
+   <https://enlighten.enphaseenergy.com> (zo niet, dan heb je geen systemen
+   om te koppelen).
+5. Run het meegeleverde hulpscript, dat je door de eenmalige
+   OAuth-koppeling leidt:
+
+   ```bash
+   npm run enphase:setup
+   ```
+
+   Dit script vraagt je Client ID/Secret/API Key, laat je inloggen bij
+   Enphase in de browser en ruilt de autorisatiecode om voor tokens. Het
+   print aan het eind de env-variabelen die je moet instellen.
+
+6. Zet die variabelen in `.env.local` (lokaal — zie `.env.local.example`)
+   of bij je hosting-provider (bv. Vercel → Project Settings →
+   Environment Variables), en herstart de app.
+
+### Beperkingen
+
+- **Alleen opwek, geen verbruik**: dit systeem meet alleen wat je panelen
+  opwekken, niet je werkelijke huisverbruik. "Zelfvoorzienend" is daarom een
+  schatting: kwartieren waarin je opwek minstens het **geschatte
+  huisverbruik** haalt dat je zelf instelt bij Instellingen (standaard
+  400 W) — geen meting van je daadwerkelijke verbruik.
+- **refresh_token verloopt** (doorgaans na ~1 maand): als de
+  zonnepanelen-sectie na een tijdje weer "niet gekoppeld" toont, draai
+  `npm run enphase:setup` opnieuw en werk `ENPHASE_REFRESH_TOKEN` bij. Er is
+  geen database om een automatisch vernieuwd refresh_token blijvend op te
+  slaan.
+- **Rate limits**: het gratis Watt-plan heeft een beperkt aantal calls per
+  maand. De app vraagt daarom maar elke 15 minuten nieuwe data op
+  (i.p.v. de 5 minuten van de prijzen-API's). Verhoog dit niet zonder je
+  Enphase-abonnement te checken.
 
 ## Starten
 
@@ -59,24 +116,6 @@ npm run dev
 ```
 
 Open <http://localhost:3000>.
-
-## Zonnepanelen (Enphase)
-
-Optioneel: toon de opwek van je Enphase-systeem via de Enlighten API v4.
-
-1. Maak een gratis account/app aan op <https://developer-v4.enphase.com>
-   (plan "Watt"). Noteer **API Key**, **Client ID** en **Client Secret** en
-   gebruik als redirect URI `https://api.enphaseenergy.com/oauth/redirect_uri`.
-2. Draai `npm run enphase:setup`. Het script vraagt de drie waarden, geeft
-   een inlog-URL voor je Enlighten-account, vraagt de getoonde code en schrijft
-   `ENPHASE_API_KEY`, `ENPHASE_CLIENT_ID`, `ENPHASE_CLIENT_SECRET`,
-   `ENPHASE_SYSTEM_ID` en `ENPHASE_REFRESH_TOKEN` naar `.env.local`.
-3. Herstart `npm run dev`. De kaart "Zonnepanelen" toont nu opwek nu/vandaag.
-
-Op Vercel zet je dezelfde variabelen bij Environment Variables. Let op:
-Enphase roteert refresh tokens; de app bewaart de nieuwste in geheugen, dus
-na een herstart/cold start kan de waarde uit de env verlopen zijn. Draai dan
-`npm run enphase:setup` opnieuw.
 
 ## Productie build
 
@@ -89,16 +128,22 @@ npm run start
 
 - `src/lib/energyzero.ts` — server-side fetch + normalisatie van de
   EnergyZero-tarieven.
-- `src/app/api/electricity/route.ts`, `src/app/api/gas/route.ts` —
-  API-routes die als proxy dienen (voorkomt CORS-problemen in de browser en
-  cachen de respons 5 minuten).
+- `src/lib/enphase.ts` — server-side OAuth-tokenbeheer + fetch van
+  Enphase-productietelemetrie.
+- `src/app/api/electricity/route.ts`, `src/app/api/gas/route.ts`,
+  `src/app/api/solar/route.ts` — API-routes die als proxy dienen (voorkomt
+  CORS-problemen in de browser en cachen de respons).
 - `src/lib/priceUtils.ts` — tijdzone-bewuste (Europe/Amsterdam)
   berekeningen: huidig prijspunt, goedkoopste/duurste moment, goedkoopste
-  aaneengesloten blok, BTW/opslag-toepassing.
-- `src/lib/usePrices.ts`, `src/lib/useSettings.ts` — client-side hooks voor
-  data ophalen/verversen en persoonlijke instellingen.
+  aaneengesloten blok, BTW/opslag-toepassing. Generiek over elk puntentype
+  met een `timestamp`-veld, dus ook bruikbaar voor de zonnepanelendata.
+- `src/lib/usePrices.ts`, `src/lib/useSolarData.ts`, `src/lib/useSettings.ts`
+  — client-side hooks voor data ophalen/verversen en persoonlijke
+  instellingen.
 - `src/components/*` — dashboardonderdelen (kaarten, grafieken,
   instellingenpaneel).
+- `scripts/enphase-setup.mjs` — eenmalig CLI-hulpscript voor de
+  OAuth-koppeling met Enphase.
 
 ## Deployen
 

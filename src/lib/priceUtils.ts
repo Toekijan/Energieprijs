@@ -46,12 +46,12 @@ export function tomorrowKey(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }
 
-export function pointsForDate(points: PricePoint[], dateKey: string): PricePoint[] {
+export function pointsForDate<T extends { timestamp: string }>(points: T[], dateKey: string): T[] {
   return points.filter((p) => localDateKey(p.timestamp) === dateKey);
 }
 
-export function groupByDate(points: PricePoint[]): Map<string, PricePoint[]> {
-  const map = new Map<string, PricePoint[]>();
+export function groupByDate<T extends { timestamp: string }>(points: T[]): Map<string, T[]> {
+  const map = new Map<string, T[]>();
   for (const p of points) {
     const key = localDateKey(p.timestamp);
     const arr = map.get(key);
@@ -94,7 +94,7 @@ export function average(points: PricePoint[]): number | null {
  * voor kwartierprijzen of 60 voor uurprijzen. Gas blijft altijd 1 punt/dag
  * (elders al gededupliceerd), dus deze functie is vooral relevant voor stroom.
  */
-export function inferIntervalMinutes(points: PricePoint[]): number {
+export function inferIntervalMinutes(points: { timestamp: string }[]): number {
   if (points.length < 2) return 60;
   const diffMs = new Date(points[1].timestamp).getTime() - new Date(points[0].timestamp).getTime();
   const minutes = diffMs / 60_000;
@@ -132,9 +132,9 @@ export function cheapestWindow(points: PricePoint[], hours: number): CheapestWin
   return { startIndex: bestStart, points: windowPoints, averagePriceExVat: bestSum / windowSize };
 }
 
-export function currentPoint(points: PricePoint[]): PricePoint | null {
+export function currentPoint<T extends { timestamp: string }>(points: T[]): T | null {
   const now = Date.now();
-  let current: PricePoint | null = null;
+  let current: T | null = null;
   for (const p of points) {
     const t = new Date(p.timestamp).getTime();
     if (t <= now && (current === null || t > new Date(current.timestamp).getTime())) {
