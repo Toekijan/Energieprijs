@@ -9,6 +9,12 @@ export interface SolarSummary {
   status: string;
 }
 
+export interface SolarInterval {
+  /** Begin van het kwartier, ISO-8601 UTC. */
+  timestamp: string;
+  wh: number;
+}
+
 export function enphaseConfigured() {
   const e = process.env;
   return Boolean(e.ENPHASE_API_KEY && e.ENPHASE_CLIENT_ID && e.ENPHASE_CLIENT_SECRET && e.ENPHASE_SYSTEM_ID && e.ENPHASE_REFRESH_TOKEN);
@@ -53,4 +59,28 @@ export async function fetchSolarSummary(): Promise<SolarSummary> {
     lastReportAt: s.last_report_at ? new Date(s.last_report_at * 1000).toISOString() : null,
     status: s.status ?? "unknown",
   };
+}
+
+const QUARTER_MS = 15 * 60_000;
+
+/** Opwek van vandaag per kwartier (Wh). Probeert micro-omvormers, dan productiemeter. */
+export async function fetchSolarIntervals(): Promise<SolarInterval[]> {
+  const token = await getAccessToken();
+  for (const kind of ["production_micro", "production_meter"]) {
+    const res = await fetch(`${API}/api/v4/systems/${process.env.ENPHASE_SYSTEM_ID}/telemetry/${kind}?granularity=day&key=${encodeURIComponent(process.env.ENPHASE_API_KEY!)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!res.ok) continue;
+    const body = await res.json();
+    const buckets = new Map<number, number>();
+    for (const i of body.intervals ?? []) {
+      // end_at is in seconden; een interval hoort bij het kwartier waarin het begon.
+      const startMs = i.end_at * 1000 - 1;
+      const key = Math.floor(startMs / QUARTER_MS) * QUARTER_MS;
+      buckets.set(key, (buckets.get(key) ?? 0) + (i.enwh ?? 0));
+    }
+    return [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([ms, wh]) => ({ timestamp: new Date(ms).toISOString(), wh }));
+  }
+  return [];
 }

@@ -10,7 +10,8 @@ import { SolarCard } from "@/components/SolarCard";
 import { StatusBar } from "@/components/StatusBar";
 import { usePrices } from "@/lib/usePrices";
 import { useSettings } from "@/lib/useSettings";
-import { currentPoint, pointsForDate, tomorrowKey, todayKey } from "@/lib/priceUtils";
+import { feedInValueEur, useSolar } from "@/lib/useSolar";
+import { currentPoint, totalPrice, pointsForDate, tomorrowKey, todayKey } from "@/lib/priceUtils";
 
 export default function Home() {
   const electricity = usePrices("/api/electricity");
@@ -24,9 +25,15 @@ export default function Home() {
 
   const gasPoints = gas.data?.points ?? [];
 
+  const solar = useSolar();
+  const solarIntervals = solar?.intervals ?? [];
+
   const electricityConsumptionSurcharge = { surchargeExVat: settings.electricityTaxExVat + settings.electricitySurchargeExVat, vatPercent: settings.vatPercent };
   const electricityFeedInSurcharge = { surchargeExVat: settings.electricityFeedInSurchargeExVat, vatPercent: settings.vatPercent };
   const gasSurcharge = { surchargeExVat: settings.gasSurchargeExVat, vatPercent: settings.vatPercent };
+
+  const feedInPriceByTime = new Map(todayPoints.map((p) => [new Date(p.timestamp).getTime(), totalPrice(p, electricityFeedInSurcharge)]));
+  const feedInValueToday = solar?.configured && !solar.error ? feedInValueEur(solarIntervals, feedInPriceByTime) : null;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
@@ -42,9 +49,9 @@ export default function Home() {
         <CheapestWindowCard todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} windowHours={settings.windowHours} onWindowHoursChange={(h) => setSettings({ ...settings, windowHours: h })} surcharge={electricityConsumptionSurcharge} />
       </div>
 
-      <SolarCard />
+      <SolarCard data={solar} feedInValueTodayEur={feedInValueToday} />
 
-      <ElectricityChart todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
+      <ElectricityChart solarIntervals={solarIntervals} todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
       <ElectricityPriceTable todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
