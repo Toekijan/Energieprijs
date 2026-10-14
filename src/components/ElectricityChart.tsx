@@ -124,7 +124,7 @@ export function ElectricityChart({
                   <Cell key={i} fill={colorFor(d.price, min, max, mode === "feedIn")} stroke={d.isNow ? "#1d4ed8" : undefined} strokeWidth={d.isNow ? 2 : 0} />
                 ))}
               </Bar>
-              {showSolar && <Line yAxisId="solar" dataKey="solarKwh" type="monotone" stroke="#f59e0b" strokeWidth={2} dot={false} />}
+              {showSolar && <Line yAxisId="solar" dataKey="solarKwh" type="monotone" stroke="#2563eb" strokeWidth={2.5} dot={false} />}
             </ComposedChart>
           </ResponsiveContainer>
           </div>
