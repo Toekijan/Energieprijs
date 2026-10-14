@@ -60,6 +60,24 @@ npm run dev
 
 Open <http://localhost:3000>.
 
+## Zonnepanelen (Enphase)
+
+Optioneel: toon de opwek van je Enphase-systeem via de Enlighten API v4.
+
+1. Maak een gratis account/app aan op <https://developer-v4.enphase.com>
+   (plan "Watt"). Noteer **API Key**, **Client ID** en **Client Secret** en
+   gebruik als redirect URI `https://api.enphaseenergy.com/oauth/redirect_uri`.
+2. Draai `npm run enphase:setup`. Het script vraagt de drie waarden, geeft
+   een inlog-URL voor je Enlighten-account, vraagt de getoonde code en schrijft
+   `ENPHASE_API_KEY`, `ENPHASE_CLIENT_ID`, `ENPHASE_CLIENT_SECRET`,
+   `ENPHASE_SYSTEM_ID` en `ENPHASE_REFRESH_TOKEN` naar `.env.local`.
+3. Herstart `npm run dev`. De kaart "Zonnepanelen" toont nu opwek nu/vandaag.
+
+Op Vercel zet je dezelfde variabelen bij Environment Variables. Let op:
+Enphase roteert refresh tokens; de app bewaart de nieuwste in geheugen, dus
+na een herstart/cold start kan de waarde uit de env verlopen zijn. Draai dan
+`npm run enphase:setup` opnieuw.
+
 ## Productie build
 
 ```bash

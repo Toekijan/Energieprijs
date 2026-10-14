@@ -6,6 +6,7 @@ import { ElectricityChart } from "@/components/ElectricityChart";
 import { ElectricityPriceTable } from "@/components/ElectricityPriceTable";
 import { GasSection } from "@/components/GasSection";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { SolarCard } from "@/components/SolarCard";
 import { StatusBar } from "@/components/StatusBar";
 import { usePrices } from "@/lib/usePrices";
 import { useSettings } from "@/lib/useSettings";
@@ -40,6 +41,8 @@ export default function Home() {
         <CurrentElectricityCard current={current} todayPoints={todayPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
         <CheapestWindowCard todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} windowHours={settings.windowHours} onWindowHoursChange={(h) => setSettings({ ...settings, windowHours: h })} surcharge={electricityConsumptionSurcharge} />
       </div>
+
+      <SolarCard />
 
       <ElectricityChart todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
