@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { PricePoint } from "@/lib/types";
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { PricePoint, SolarPoint } from "@/lib/types";
+import { solarKwhPerQuarter } from "@/lib/solarUtils";
 import { cheapest, formatEurCents, inferIntervalMinutes, localTimeLabel, mostExpensive, totalPrice, type Surcharge } from "@/lib/priceUtils";
 import { useElementWidth } from "@/lib/useElementWidth";
 import { Card } from "./Card";
@@ -22,11 +23,13 @@ function colorFor(value: number, min: number, max: number, invert = false): stri
 }
 
 export function ElectricityChart({
+  solarPoints,
   todayPoints,
   tomorrowPoints,
   consumptionSurcharge,
   feedInSurcharge,
 }: {
+  solarPoints: SolarPoint[];
   todayPoints: PricePoint[];
   tomorrowPoints: PricePoint[];
   consumptionSurcharge: Surcharge;
@@ -49,17 +52,21 @@ export function ElectricityChart({
 
   const intervalMs = inferIntervalMinutes(points) * 60_000;
 
+  const solarByTime = useMemo(() => solarKwhPerQuarter(solarPoints), [solarPoints]);
+  const showSolar = day === "today" && solarByTime.size > 0;
+
   const chartData = useMemo(
     () =>
       points.map((p) => {
         const t = new Date(p.timestamp).getTime();
         return {
           time: localTimeLabel(p.timestamp),
+          solarKwh: solarByTime.get(t) ?? null,
           price: totalPrice(p, surcharge),
           isNow: day === "today" && nowMs !== null && t <= nowMs && nowMs - t < intervalMs,
         };
       }),
-    [points, surcharge, day, nowMs, intervalMs]
+    [points, surcharge, day, nowMs, intervalMs, solarByTime]
   );
 
   const min = chartData.length ? Math.min(...chartData.map((d) => d.price)) : 0;
@@ -106,18 +113,20 @@ export function ElectricityChart({
         <>
           <div ref={chartWrapperRef}>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
               <XAxis dataKey="time" interval={tickInterval} tick={{ fontSize: 11 }} />
               <YAxis tickFormatter={(v) => formatEurCents(v)} width={56} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => [formatEurCents(v) + " / kWh", mode === "consumption" ? "Afneemprijs" : "Terugleverprijs"]} labelFormatter={(l) => `Tijd: ${l}`} />
+              {showSolar && <YAxis yAxisId="solar" orientation="right" width={44} tick={{ fontSize: 11 }} unit=" kWh" />}
+              <Tooltip formatter={(v: number, name: string) => (name === "solarKwh" ? [`${v.toFixed(2).replace(".", ",")} kWh`, "Opwek"] : [formatEurCents(v) + " / kWh", mode === "consumption" ? "Afneemprijs" : "Terugleverprijs"])} labelFormatter={(l) => `Tijd: ${l}`} />
               <ReferenceLine y={avg} stroke="#888" strokeDasharray="4 4" label={{ value: "gem.", position: "insideTopRight", fontSize: 10, fill: "#888" }} />
               <Bar dataKey="price" radius={[3, 3, 0, 0]}>
                 {chartData.map((d, i) => (
                   <Cell key={i} fill={colorFor(d.price, min, max, mode === "feedIn")} stroke={d.isNow ? "#1d4ed8" : undefined} strokeWidth={d.isNow ? 2 : 0} />
                 ))}
               </Bar>
-            </BarChart>
+              {showSolar && <Line yAxisId="solar" dataKey="solarKwh" type="monotone" stroke="#2563eb" strokeWidth={2.5} dot={false} />}
+            </ComposedChart>
           </ResponsiveContainer>
           </div>
 

@@ -16,12 +16,14 @@ function formatEnergyKWh(wh: number): string {
 
 export function SolarSection({
   points,
+  feedInValueTodayEur,
   currentPowerW,
   baselineLoadW,
   error,
   notConfigured,
 }: {
   points: SolarPoint[];
+  feedInValueTodayEur: number | null;
   currentPowerW: number | null;
   baselineLoadW: number;
   error: string | null;
@@ -62,7 +64,7 @@ export function SolarSection({
         </p>
       )}
 
-      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
         <div>
           <p className="text-xs text-black/40 dark:text-white/40">Huidig vermogen</p>
           <p className="text-2xl font-bold tabular-nums">{livePowerW !== null ? formatPower(livePowerW) : "—"}</p>
@@ -70,6 +72,10 @@ export function SolarSection({
         <div>
           <p className="text-xs text-black/40 dark:text-white/40">Opgewekt vandaag</p>
           <p className="text-2xl font-bold tabular-nums">{formatEnergyKWh(totalEnergyWhToday)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-black/40 dark:text-white/40">Waarde opwek vandaag</p>
+          <p className="text-2xl font-bold tabular-nums">{feedInValueTodayEur !== null ? `€ ${feedInValueTodayEur.toFixed(2).replace(".", ",")}` : "—"}</p>
         </div>
         <div>
           <p className="text-xs text-black/40 dark:text-white/40">Zelfvoorzienend vandaag</p>
@@ -98,7 +104,7 @@ export function SolarSection({
 
       <p className="mt-3 text-xs text-black/40 dark:text-white/40">
         &quot;Zelfvoorzienend&quot; = kwartieren waarin de opwek minstens je geschatte huisverbruik ({formatPower(baselineLoadW)}, instelbaar) haalt — een schatting, want dit systeem meet alleen opwek, niet je werkelijke
-        verbruik. Interval: {intervalMinutes} min.
+        verbruik. Interval: {intervalMinutes} min. &quot;Waarde opwek&quot; = opwek per kwartier × terugleverprijs (incl. jouw instellingen); een indicatie, zonder rekening te houden met eigen verbruik.
       </p>
     </Card>
   );

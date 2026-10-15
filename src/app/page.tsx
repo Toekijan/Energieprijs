@@ -11,6 +11,7 @@ import { StatusBar } from "@/components/StatusBar";
 import { usePrices } from "@/lib/usePrices";
 import { useSettings } from "@/lib/useSettings";
 import { useSolarData } from "@/lib/useSolarData";
+import { feedInValueEur, solarKwhPerQuarter } from "@/lib/solarUtils";
 import { currentPoint, pointsForDate, tomorrowKey, todayKey } from "@/lib/priceUtils";
 
 export default function Home() {
@@ -30,6 +31,9 @@ export default function Home() {
   const electricityFeedInSurcharge = { surchargeExVat: settings.electricityFeedInSurchargeExVat, vatPercent: settings.vatPercent };
   const gasSurcharge = { surchargeExVat: settings.gasSurchargeExVat, vatPercent: settings.vatPercent };
 
+  const solarPoints = solar.data?.points ?? [];
+  const feedInValueToday = solar.data ? feedInValueEur(solarKwhPerQuarter(solarPoints), todayPoints, electricityFeedInSurcharge) : null;
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
       <header>
@@ -44,13 +48,13 @@ export default function Home() {
         <CheapestWindowCard todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} windowHours={settings.windowHours} onWindowHoursChange={(h) => setSettings({ ...settings, windowHours: h })} surcharge={electricityConsumptionSurcharge} />
       </div>
 
-      <ElectricityChart todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
+      <ElectricityChart solarPoints={solarPoints} todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
       <ElectricityPriceTable todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
       <GasSection points={gasPoints} surcharge={gasSurcharge} />
 
-      <SolarSection points={solar.data?.points ?? []} currentPowerW={solar.data?.currentPowerW ?? null} baselineLoadW={settings.solarBaselineLoadW} error={solar.error} notConfigured={solar.notConfigured} />
+      <SolarSection points={solarPoints} feedInValueTodayEur={feedInValueToday} currentPowerW={solar.data?.currentPowerW ?? null} baselineLoadW={settings.solarBaselineLoadW} error={solar.error} notConfigured={solar.notConfigured} />
 
       <SettingsPanel settings={settings} onChange={setSettings} />
 
