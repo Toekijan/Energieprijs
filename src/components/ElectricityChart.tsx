@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Bar, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { PricePoint, SolarPoint } from "@/lib/types";
 import { solarKwhPerQuarter } from "@/lib/solarUtils";
-import { cheapest, formatEurCents, inferIntervalMinutes, localTimeLabel, mostExpensive, totalPrice, type Surcharge } from "@/lib/priceUtils";
+import { cheapest, dateKeyOffset, formatEurCents, inferIntervalMinutes, localTimeLabel, mostExpensive, pointsForDate, todayKey, tomorrowKey, totalPrice, type Surcharge } from "@/lib/priceUtils";
 import { useElementWidth } from "@/lib/useElementWidth";
 import { Card } from "./Card";
 
@@ -23,12 +23,14 @@ function colorFor(value: number, min: number, max: number, invert = false): stri
 }
 
 export function ElectricityChart({
+  allPoints,
   solarPoints,
   todayPoints,
   tomorrowPoints,
   consumptionSurcharge,
   feedInSurcharge,
 }: {
+  allPoints: PricePoint[];
   solarPoints: SolarPoint[];
   todayPoints: PricePoint[];
   tomorrowPoints: PricePoint[];
@@ -72,6 +74,10 @@ export function ElectricityChart({
   const min = chartData.length ? Math.min(...chartData.map((d) => d.price)) : 0;
   const max = chartData.length ? Math.max(...chartData.map((d) => d.price)) : 0;
   const avg = chartData.length ? chartData.reduce((s, d) => s + d.price, 0) / chartData.length : 0;
+
+  const referenceDateKey = day === "tomorrow" ? tomorrowKey() : todayKey();
+  const lastWeekPoints = useMemo(() => pointsForDate(allPoints, dateKeyOffset(referenceDateKey, -7)), [allPoints, referenceDateKey]);
+  const lastWeekAvg = lastWeekPoints.length > 0 ? lastWeekPoints.reduce((s, p) => s + totalPrice(p, surcharge), 0) / lastWeekPoints.length : null;
 
   const cheapestPoint = cheapest(points);
   const expensivePoint = mostExpensive(points);
@@ -120,6 +126,9 @@ export function ElectricityChart({
               {showSolar && <YAxis yAxisId="solar" orientation="right" width={44} tick={{ fontSize: 11 }} unit=" kWh" />}
               <Tooltip formatter={(v: number, name: string) => (name === "solarKwh" ? [`${v.toFixed(2).replace(".", ",")} kWh`, "Opwek"] : [formatEurCents(v) + " / kWh", mode === "consumption" ? "Afneemprijs" : "Terugleverprijs"])} labelFormatter={(l) => `Tijd: ${l}`} />
               <ReferenceLine y={avg} stroke="#888" strokeDasharray="4 4" label={{ value: "gem.", position: "insideTopRight", fontSize: 10, fill: "#888" }} />
+              {lastWeekAvg !== null && (
+                <ReferenceLine y={lastWeekAvg} stroke="#16a34a" strokeWidth={1.5} strokeDasharray="4 4" label={{ value: "vorige week", position: "insideBottomRight", fontSize: 10, fill: "#16a34a" }} />
+              )}
               <Bar dataKey="price" radius={[3, 3, 0, 0]}>
                 {chartData.map((d, i) => (
                   <Cell key={i} fill={colorFor(d.price, min, max, mode === "feedIn")} stroke={d.isNow ? "#1d4ed8" : undefined} strokeWidth={d.isNow ? 2 : 0} />
@@ -139,6 +148,11 @@ export function ElectricityChart({
             {expensivePoint && (
               <p>
                 <span className={`font-medium ${mode === "feedIn" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>{highLabel}</span> om {localTimeLabel(expensivePoint.point.timestamp)} — {formatEurCents(totalPrice(expensivePoint.point, surcharge))}/kWh
+              </p>
+            )}
+            {lastWeekAvg !== null && (
+              <p>
+                <span className="font-medium text-green-600 dark:text-green-400">Vorige week (zelfde dag)</span> gemiddeld {formatEurCents(lastWeekAvg)}/kWh
               </p>
             )}
           </div>
