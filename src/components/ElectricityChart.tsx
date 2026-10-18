@@ -127,7 +127,7 @@ export function ElectricityChart({
               <Tooltip formatter={(v: number, name: string) => (name === "solarKwh" ? [`${v.toFixed(2).replace(".", ",")} kWh`, "Opwek"] : [formatEurCents(v) + " / kWh", mode === "consumption" ? "Afneemprijs" : "Terugleverprijs"])} labelFormatter={(l) => `Tijd: ${l}`} />
               <ReferenceLine y={avg} stroke="#888" strokeDasharray="4 4" label={{ value: "gem.", position: "insideTopRight", fontSize: 10, fill: "#888" }} />
               {lastWeekAvg !== null && (
-                <ReferenceLine y={lastWeekAvg} stroke="#16a34a" strokeWidth={1.5} strokeDasharray="4 4" label={{ value: "vorige week", position: "insideBottomRight", fontSize: 10, fill: "#16a34a" }} />
+                <ReferenceLine y={lastWeekAvg} stroke="#dc2626" strokeWidth={1.5} strokeDasharray="4 4" label={{ value: "vorige week", position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }} />
               )}
               <Bar dataKey="price" radius={[3, 3, 0, 0]}>
                 {chartData.map((d, i) => (
@@ -152,7 +152,7 @@ export function ElectricityChart({
             )}
             {lastWeekAvg !== null && (
               <p>
-                <span className="font-medium text-green-600 dark:text-green-400">Vorige week (zelfde dag)</span> gemiddeld {formatEurCents(lastWeekAvg)}/kWh
+                <span className="font-medium text-red-600 dark:text-red-400">Vorige week (zelfde dag)</span> gemiddeld {formatEurCents(lastWeekAvg)}/kWh
               </p>
             )}
           </div>
