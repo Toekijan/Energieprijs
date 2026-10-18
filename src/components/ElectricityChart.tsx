@@ -22,16 +22,33 @@ function colorFor(value: number, min: number, max: number, invert = false): stri
   return `hsl(${hue}, 70%, 45%)`;
 }
 
+type LineKey = "avg" | "solar" | "feedIn" | "lastWeekAvg" | "lastWeekSolar";
+
+function LineToggle({ on, onToggle, colorClass, trackClass, children }: { on: boolean; onToggle: () => void; colorClass: string; trackClass: string; children: React.ReactNode }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} onClick={onToggle} className="flex items-center gap-2 text-left text-sm">
+      <span className={`relative inline-block h-4 w-7 shrink-0 rounded-full transition ${on ? trackClass : "bg-black/20 dark:bg-white/20"}`}>
+        <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${on ? "left-3.5" : "left-0.5"}`} />
+      </span>
+      <span className={`font-medium ${on ? colorClass : "text-black/40 line-through dark:text-white/40"}`}>{children}</span>
+    </button>
+  );
+}
+
 export function ElectricityChart({
+  baselineLoadW,
   allPoints,
   solarPoints,
+  lastWeekSolarPoints,
   todayPoints,
   tomorrowPoints,
   consumptionSurcharge,
   feedInSurcharge,
 }: {
+  baselineLoadW: number;
   allPoints: PricePoint[];
   solarPoints: SolarPoint[];
+  lastWeekSolarPoints: SolarPoint[];
   todayPoints: PricePoint[];
   tomorrowPoints: PricePoint[];
   consumptionSurcharge: Surcharge;
@@ -39,6 +56,8 @@ export function ElectricityChart({
 }) {
   const [day, setDay] = useState<"today" | "tomorrow">("today");
   const [mode, setMode] = useState<PriceMode>("consumption");
+  const [visible, setVisible] = useState<Record<LineKey, boolean>>({ avg: true, solar: true, feedIn: true, lastWeekAvg: true, lastWeekSolar: true });
+  const toggle = (k: LineKey) => setVisible((v) => ({ ...v, [k]: !v[k] }));
   const points = day === "tomorrow" ? tomorrowPoints : todayPoints;
   const surcharge = mode === "consumption" ? consumptionSurcharge : feedInSurcharge;
 
@@ -56,6 +75,19 @@ export function ElectricityChart({
 
   const solarByTime = useMemo(() => solarKwhPerQuarter(solarPoints), [solarPoints]);
   const showSolar = day === "today" && solarByTime.size > 0;
+  const feedInTotalKwh = useMemo(() => {
+    const kwhPerSlot = (baselineLoadW / 1000) * (inferIntervalMinutes(points) / 60);
+    return [...solarByTime.values()].reduce((sum, v) => sum + Math.max(0, v - kwhPerSlot), 0);
+  }, [solarByTime, baselineLoadW, points]);
+  const solarTotalKwh = useMemo(() => [...solarByTime.values()].reduce((sum, v) => sum + v, 0), [solarByTime]);
+
+  // Opwek vorige week, op lokale tijdlabel (blijft kloppen bij zomer-/wintertijd).
+  const lastWeekSolarByLabel = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const [t, kwh] of solarKwhPerQuarter(lastWeekSolarPoints)) map.set(localTimeLabel(new Date(t).toISOString()), kwh);
+    return map;
+  }, [lastWeekSolarPoints]);
+  const hasLastWeekSolar = showSolar && lastWeekSolarByLabel.size > 0;
 
   const chartData = useMemo(
     () =>
@@ -64,16 +96,21 @@ export function ElectricityChart({
         return {
           time: localTimeLabel(p.timestamp),
           solarKwh: solarByTime.get(t) ?? null,
+          // Schatting: opwek minus het geschatte huisverbruik in dat kwartier.
+          feedInKwh: solarByTime.has(t) ? Math.max(0, solarByTime.get(t)! - (baselineLoadW / 1000) * (intervalMs / 3_600_000)) : null,
+          lastWeekSolarKwh: lastWeekSolarByLabel.get(localTimeLabel(p.timestamp)) ?? null,
           price: totalPrice(p, surcharge),
           isNow: day === "today" && nowMs !== null && t <= nowMs && nowMs - t < intervalMs,
         };
       }),
-    [points, surcharge, day, nowMs, intervalMs, solarByTime]
+    [points, surcharge, day, nowMs, intervalMs, solarByTime, lastWeekSolarByLabel, baselineLoadW]
   );
 
   const min = chartData.length ? Math.min(...chartData.map((d) => d.price)) : 0;
   const max = chartData.length ? Math.max(...chartData.map((d) => d.price)) : 0;
   const avg = chartData.length ? chartData.reduce((s, d) => s + d.price, 0) / chartData.length : 0;
+
+  const lastWeekSolarKwh = useMemo(() => [...solarKwhPerQuarter(lastWeekSolarPoints).values()].reduce((sum, v) => sum + v, 0), [lastWeekSolarPoints]);
 
   const referenceDateKey = day === "tomorrow" ? tomorrowKey() : todayKey();
   const lastWeekPoints = useMemo(() => pointsForDate(allPoints, dateKeyOffset(referenceDateKey, -7)), [allPoints, referenceDateKey]);
@@ -123,18 +160,20 @@ export function ElectricityChart({
               <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
               <XAxis dataKey="time" interval={tickInterval} tick={{ fontSize: 11 }} />
               <YAxis tickFormatter={(v) => formatEurCents(v)} width={56} tick={{ fontSize: 11 }} />
-              {showSolar && <YAxis yAxisId="solar" orientation="right" width={44} tick={{ fontSize: 11 }} unit=" kWh" />}
-              <Tooltip formatter={(v: number, name: string) => (name === "solarKwh" ? [`${v.toFixed(2).replace(".", ",")} kWh`, "Opwek"] : [formatEurCents(v) + " / kWh", mode === "consumption" ? "Afneemprijs" : "Terugleverprijs"])} labelFormatter={(l) => `Tijd: ${l}`} />
-              <ReferenceLine y={avg} stroke="#888" strokeDasharray="4 4" label={{ value: "gem.", position: "insideTopRight", fontSize: 10, fill: "#888" }} />
-              {lastWeekAvg !== null && (
-                <ReferenceLine y={lastWeekAvg} stroke="#dc2626" strokeWidth={1.5} strokeDasharray="4 4" label={{ value: "vorige week", position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }} />
-              )}
+              {((showSolar && (visible.solar || visible.feedIn)) || (hasLastWeekSolar && visible.lastWeekSolar)) && <YAxis yAxisId="solar" orientation="right" width={44} tick={{ fontSize: 11 }} unit=" kWh" />}
+              <Tooltip formatter={(v: number, name: string) => (name === "solarKwh" || name === "lastWeekSolarKwh" || name === "feedInKwh" ? [`${v.toFixed(2).replace(".", ",")} kWh`, name === "solarKwh" ? "Opwek" : name === "feedInKwh" ? "Teruglevering (schatting)" : "Opwek vorige week"] : [formatEurCents(v) + " / kWh", mode === "consumption" ? "Afneemprijs" : "Terugleverprijs"])} labelFormatter={(l) => `Tijd: ${l}`} />
               <Bar dataKey="price" radius={[3, 3, 0, 0]}>
                 {chartData.map((d, i) => (
                   <Cell key={i} fill={colorFor(d.price, min, max, mode === "feedIn")} stroke={d.isNow ? "#1d4ed8" : undefined} strokeWidth={d.isNow ? 2 : 0} />
                 ))}
               </Bar>
-              {showSolar && <Line yAxisId="solar" dataKey="solarKwh" type="monotone" stroke="#2563eb" strokeWidth={2.5} dot={false} />}
+              {showSolar && visible.solar && <Line yAxisId="solar" dataKey="solarKwh" type="monotone" stroke="#2563eb" strokeWidth={2.5} dot={false} />}
+              {showSolar && visible.feedIn && <Line yAxisId="solar" dataKey="feedInKwh" type="monotone" stroke="#9333ea" strokeWidth={2.5} dot={false} />}
+              {hasLastWeekSolar && visible.lastWeekSolar && <Line yAxisId="solar" dataKey="lastWeekSolarKwh" type="monotone" stroke="#dc2626" strokeWidth={2} dot={false} />}
+              {visible.avg && <ReferenceLine y={avg} stroke="#222" strokeWidth={1.5} strokeDasharray="4 4"  />}
+              {lastWeekAvg !== null && visible.lastWeekAvg && (
+                <ReferenceLine y={lastWeekAvg} stroke="#dc2626" strokeWidth={1.5} strokeDasharray="4 4"  />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
           </div>
@@ -150,10 +189,28 @@ export function ElectricityChart({
                 <span className={`font-medium ${mode === "feedIn" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>{highLabel}</span> om {localTimeLabel(expensivePoint.point.timestamp)} — {formatEurCents(totalPrice(expensivePoint.point, surcharge))}/kWh
               </p>
             )}
+            <LineToggle on={visible.avg} onToggle={() => toggle("avg")} colorClass="text-black dark:text-white" trackClass="bg-neutral-800 dark:bg-neutral-300">
+              Gemid. {day === "tomorrow" ? "morgen" : "vandaag"} {formatEurCents(avg)}/kWh
+            </LineToggle>
+            {showSolar && (
+              <LineToggle on={visible.solar} onToggle={() => toggle("solar")} colorClass="text-blue-600 dark:text-blue-400" trackClass="bg-blue-600">
+                Opwek vandaag {solarTotalKwh.toFixed(1).replace(".", ",")} kWh
+              </LineToggle>
+            )}
+            {showSolar && (
+              <LineToggle on={visible.feedIn} onToggle={() => toggle("feedIn")} colorClass="text-purple-600 dark:text-purple-400" trackClass="bg-purple-600">
+                Teruglevering (schatting) {feedInTotalKwh.toFixed(1).replace(".", ",")} kWh
+              </LineToggle>
+            )}
             {lastWeekAvg !== null && (
-              <p>
-                <span className="font-medium text-red-600 dark:text-red-400">Vorige week (zelfde dag)</span> gemiddeld {formatEurCents(lastWeekAvg)}/kWh
-              </p>
+              <LineToggle on={visible.lastWeekAvg} onToggle={() => toggle("lastWeekAvg")} colorClass="text-red-600 dark:text-red-400" trackClass="bg-red-600">
+                Gemid. vorige week {formatEurCents(lastWeekAvg)}/kWh
+              </LineToggle>
+            )}
+            {hasLastWeekSolar && (
+              <LineToggle on={visible.lastWeekSolar} onToggle={() => toggle("lastWeekSolar")} colorClass="text-red-600 dark:text-red-400" trackClass="bg-red-600">
+                Opwek vorige week {lastWeekSolarKwh.toFixed(1).replace(".", ",")} kWh
+              </LineToggle>
             )}
           </div>
         </>

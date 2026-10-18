@@ -175,6 +175,12 @@ export async function fetchSolarProduction(start: Date, end: Date): Promise<Sola
   return merged;
 }
 
+/** Alle productiepunten van de lokale kalenderdag waarin `moment` valt (één verzoek). */
+export async function fetchSolarDay(moment: Date): Promise<SolarPoint[]> {
+  const systemId = requireEnv("ENPHASE_SYSTEM_ID");
+  return fetchDay(systemId, localDateParams(moment, moment)[0]);
+}
+
 /** Huidig vermogen (W) uit de systeemsamenvatting, of null als dat veld ontbreekt. */
 export async function fetchCurrentPowerW(): Promise<number | null> {
   const systemId = requireEnv("ENPHASE_SYSTEM_ID");

@@ -26,6 +26,8 @@ export interface SolarPoint {
 
 export interface SolarResponse {
   points: SolarPoint[];
+  /** Productiepunten van dezelfde dag vorige week. */
+  lastWeekPoints?: SolarPoint[];
   /** Huidig vermogen (W) zoals gerapporteerd door de Enphase-summary, indien beschikbaar. */
   currentPowerW: number | null;
   source: string;
