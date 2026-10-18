@@ -4,7 +4,9 @@ export const revalidate = 300;
 
 export async function GET() {
   const now = new Date();
-  const start = new Date(now.getTime() - 26 * 3600 * 1000);
+  // 8 dagen terug i.p.v. 26 uur: zo is ook de vorige-week-dezelfde-dag-vergelijking
+  // (zie priceUtils.dateKeyDaysAgo) altijd beschikbaar, ruim marge voor tijdzones.
+  const start = new Date(now.getTime() - 8 * 24 * 3600 * 1000);
   const end = new Date(now.getTime() + 50 * 3600 * 1000);
 
   try {

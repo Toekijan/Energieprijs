@@ -46,6 +46,16 @@ export function tomorrowKey(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }
 
+/**
+ * Verschuift een "YYYY-MM-DD"-datumsleutel met `days` dagen (negatief = terug
+ * in de tijd). Puur kalenderrekenwerk op de sleutel zelf, dus tijdzone-agnostisch.
+ */
+export function dateKeyOffset(dateKey: string, days: number): string {
+  const d = new Date(`${dateKey}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "UTC", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+
 export function pointsForDate<T extends { timestamp: string }>(points: T[], dateKey: string): T[] {
   return points.filter((p) => localDateKey(p.timestamp) === dateKey);
 }

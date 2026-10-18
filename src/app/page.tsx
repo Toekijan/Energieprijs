@@ -48,7 +48,7 @@ export default function Home() {
         <CheapestWindowCard todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} windowHours={settings.windowHours} onWindowHoursChange={(h) => setSettings({ ...settings, windowHours: h })} surcharge={electricityConsumptionSurcharge} />
       </div>
 
-      <ElectricityChart solarPoints={solarPoints} todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
+      <ElectricityChart baselineLoadW={settings.solarBaselineLoadW} allPoints={electricityPoints} solarPoints={solarPoints} lastWeekSolarPoints={solar.data?.lastWeekPoints ?? []} todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
       <ElectricityPriceTable todayPoints={todayPoints} tomorrowPoints={tomorrowPoints} consumptionSurcharge={electricityConsumptionSurcharge} feedInSurcharge={electricityFeedInSurcharge} />
 
